@@ -11,5 +11,17 @@ services:
     command: ["redis-server", "--appendonly", "yes"] # Enables persistent storage with AOF
     restart: always
 
+  postgres:
+    image: postgres:13
+    container_name: postgres-worker
+    environment:
+      - POSTGRES_DB=database
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+
+
+
 volumes:
   redis_data:

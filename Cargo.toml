@@ -8,7 +8,10 @@ edition = "2021"
 tokio = { version = "1.4.2", features = ["full"] }
 tokio-stream = "0.1.17"
 
-sqlx = { version = "0.8.3", features = ["runtime-tokio", "mysql"] }
+tokio-postgres = "0.7.12"
+postgres-types = "0.2.8"
+deadpool-postgres = "0.14.1"
+
 lapin = "2.5.0"
 
 apalis = "0.6.3"

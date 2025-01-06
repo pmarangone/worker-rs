@@ -1,35 +1,63 @@
+use std::sync::Arc;
+
 use apalis::prelude::*;
 use apalis_redis::{Config, RedisStorage};
+use db::primary_op::{create_table, insert_into_table};
+use deadpool_postgres::Pool;
+use models::transaction::TransactionModel;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Email {
-    pub to: String,
+mod db;
+mod models;
+
+struct State {
+    pool: Pool,
 }
 
 /// A function called for every job
-async fn send_email(job: Email, data: Data<usize>) -> Result<(), Error> {
-    info!("Called send_email!");
-    /// execute job
+async fn send_tx(job: TransactionModel, state: Data<Arc<State>>) -> Result<(), Error> {
+    info!("Called send_tx!");
+
+    let mut client = state
+        .pool
+        .get()
+        .await
+        .expect("Failed to get client from pool");
+
+    // let result = create_table(&mut client).await;
+    let result = insert_into_table(&mut client, job).await;
+    match result {
+        Ok(_) => {
+            info!("Tx insertion succeeded!")
+        }
+        Err(err) => {
+            error!("Tx insertion failed: {:?}", err)
+        }
+    }
+
     Ok(())
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), anyhow::Error> {
     tracing_subscriber::fmt::init();
     let redis_url = "redis://localhost:6379";
+
+    let pool = db::primary_op::create_connection_pool().await?;
+    let state = Arc::new(State { pool });
+
     match apalis_redis::connect(redis_url).await {
         Ok(conn) => {
-            info!("Connection succeeded!");
+            info!("Redis connection succeeded!");
             let config_storage = Config::default();
             let conf = config_storage.set_namespace("email-worker");
-            let mut storage = RedisStorage::new_with_config(conn, conf);
+            let storage = RedisStorage::new_with_config(conn, conf);
             // let _ = produce_route_jobs(&mut storage).await;
             WorkerBuilder::new("email-worker")
-                .data(0usize)
+                .data(state)
                 .backend(storage)
-                .build_fn(send_email)
+                .build_fn(send_tx)
                 .run()
                 .await;
         }
