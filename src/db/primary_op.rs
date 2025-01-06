@@ -19,6 +19,9 @@ pub async fn create_connection_pool() -> Result<Pool, Error> {
     });
 
     let pool = cfg.create_pool(Some(Tokio1), NoTls)?;
+    let mut client = pool.get().await.expect("Failed to get client from pool");
+    let _ = create_table(&mut client).await;
+
     info!("Pool connection succeeded!");
     Ok(pool)
 }
@@ -29,7 +32,7 @@ pub async fn create_connection_pool() -> Result<Pool, Error> {
 // }
 
 pub async fn create_table(client: &mut Client) -> Result<(), Error> {
-    client
+    let res = client
         .batch_execute(
             "
     CREATE TABLE IF NOT EXISTS transactions (
@@ -39,7 +42,12 @@ pub async fn create_table(client: &mut Client) -> Result<(), Error> {
     )
     ",
         )
-        .await?;
+        .await;
+
+    match res {
+        Ok(_) => info!("Table transactions created!"),
+        Err(_) => info!("Failed to create transactions table"),
+    }
 
     Ok(())
 }
@@ -56,35 +64,5 @@ pub async fn insert_into_table(
         )
         .await?;
 
-    Ok(())
-}
-
-pub async fn query_all(client: Client) -> Result<(), Error> {
-    // let mut users: Vec<User> = vec![];
-
-    // for row in client
-    //     .query(
-    //         "SELECT id, name, surname, description, age FROM person",
-    //         &[],
-    //     )
-    //     .await?
-    // {
-    //     let id: i32 = row.get(0);
-    //     let name: &str = row.get(1);
-    //     let surname: &str = row.get(2);
-    //     let description: &str = row.get(3);
-    //     let age: i32 = row.get(4);
-
-    //     // let data: Option<&[u8]> = row.get(2);
-
-    //     users.push(User {
-    //         name: name.to_string(),
-    //         surname: surname.to_string(),
-    //         description: description.to_string(),
-    //         age,
-    //     });
-    // }
-
-    // Ok(Json(users))
     Ok(())
 }

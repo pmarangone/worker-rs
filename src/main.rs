@@ -25,9 +25,8 @@ async fn send_tx(job: TransactionModel, state: Data<Arc<State>>) -> Result<(), E
         .await
         .expect("Failed to get client from pool");
 
-    // let result = create_table(&mut client).await;
-    let result = insert_into_table(&mut client, job).await;
-    match result {
+    let insert_result = insert_into_table(&mut client, job).await;
+    match insert_result {
         Ok(_) => {
             info!("Tx insertion succeeded!")
         }
@@ -50,10 +49,10 @@ async fn main() -> Result<(), anyhow::Error> {
     match apalis_redis::connect(redis_url).await {
         Ok(conn) => {
             info!("Redis connection succeeded!");
+
             let config_storage = Config::default();
             let conf = config_storage.set_namespace("email-worker");
             let storage = RedisStorage::new_with_config(conn, conf);
-            // let _ = produce_route_jobs(&mut storage).await;
             WorkerBuilder::new("email-worker")
                 .data(state)
                 .backend(storage)
