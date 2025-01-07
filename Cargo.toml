@@ -16,6 +16,8 @@ lapin = "2.5.0"
 
 apalis = "0.6.3"
 apalis-redis = { version = "0.6" }
+apalis-amqp = "0.4"
+# clap = { version = "4", features = ["derive"] }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
